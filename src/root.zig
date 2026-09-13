@@ -3,7 +3,7 @@ const Io = std.Io;
 
 const Cmd = @import("command.zig").Command;
 
-pub fn run(writer: *Io.Writer, reader: *Io.Reader) !void {
+pub fn run( writer: *Io.Writer, reader: *Io.Reader) !void {
     try printPrompt(writer);
 
     while (try reader.takeDelimiter('\n')) |line| {

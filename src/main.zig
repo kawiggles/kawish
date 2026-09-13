@@ -10,7 +10,6 @@ pub fn main(init: std.process.Init) !u8 {
     var stdin_file_reader: std.Io.File.Reader = .init(.stdin(), io, &stdin_buf);
     const stdin = &stdin_file_reader.interface;
 
-
     var stdout_buf: [1024]u8 = undefined;
     var stdout_file_writer: std.Io.File.Writer = .init(.stdout(), io, &stdout_buf);
     const stdout = &stdout_file_writer.interface;
