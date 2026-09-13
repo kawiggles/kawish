@@ -1,22 +1,43 @@
 const std = @import("std");
 const posix = std.posix;
 const mem = std.mem;
+const Io = std.Io;
 
 pub const Command = struct {
     const Self = @This();
-    pub const Error = error{EmptyCommand};
     bin: []const u8,
     input: []const u8,
 
-    pub fn init(input: []const u8) Error!Self {
+    pub fn init(
+        input: []const u8,
+        cache: *std.StringHashMap([]const u8),
+        env_path: []const u8,
+        alloc: mem.Allocator) !Self {
+
         var tokens = mem.splitScalar(u8, input, ' ');
         const bin = tokens.next() orelse return error.EmptyCommand;
         if (bin.len == 0) return error.EmptyCommand;
 
-        return .{
-            .bin = bin,
-            .input = input,
-        };
+        if (cache.get(bin)) |cached| return .{ .bin = cached, .input = input };
+
+        var path_tokens = mem.splitScalar(u8, env_path, ':');
+        while (path_tokens.next()) |token| {
+            var dir = token;
+            if (token[token.len - 1] == '/') dir = token[0 .. token.len - 1];
+            var path_buf: [4096]u8 = undefined;
+            const candidate = try mem.printSentinel(&path_buf, "{s}/{s}", .{dir, bin}, 0);
+
+            if (posix.system.access(@ptrCast(candidate), 1) != 0) continue;
+
+            const new_path = try alloc.dupe(u8, candidate);
+            const new_key = try alloc.dupe(u8, bin);
+            _ = try cache.put(new_key, new_path);
+            return .{
+                .bin = new_path,
+                .input = input,
+            };
+        }
+        return error.FileNotInPATH;
     }
 
     pub fn exec(self: *const Command) !void {
@@ -27,6 +48,7 @@ pub const Command = struct {
         const pid: i32 = @intCast(raw); 
 
         if (pid == 0) { // only the child will be executing the command
+            std.debug.print("Path is {s}\n", .{self.bin});
             var arg_bufs: [64][256]u8 = undefined;
             var argv: [65]?[*:0]const u8 = undefined;
 
@@ -39,10 +61,10 @@ pub const Command = struct {
             argv[i] = null;
 
             var bin_buf: [256]u8 = undefined;
-            const bin: [*:0]const u8 = mem.printSentinel(&bin_buf, "/bin/{s}", .{self.bin}, 0) catch
+            const path = mem.printSentinel(&bin_buf, "{s}", .{self.bin}, 0) catch
                 posix.system.exit(127);
 
-            _ = posix.system.execve(bin, @ptrCast(&argv), std.c.environ);
+            _ = posix.system.execve(path, @ptrCast(&argv), std.c.environ);
             posix.system.exit(127); // shouldn't reach here cause of execve
         }
 
