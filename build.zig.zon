@@ -1,0 +1,15 @@
+.{
+    .name = .kawish,
+    .version = "0.0.0",
+    .fingerprint = 0x8136ab121e50239a, 
+    .minimum_zig_version = "0.17.0-dev.2125+0d600e488",
+    .dependencies = .{
+    },
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+        "LICENSE",
+        "README.md",
+    },
+}
