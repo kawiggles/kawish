@@ -5,8 +5,8 @@ const Io = std.Io;
 
 pub const Command = struct {
     const Self = @This();
-    bin: []const u8,
-    input: []const u8,
+    bin_path: []const u8,
+    args: []const u8,
 
     pub fn init(
         input: []const u8,
@@ -33,8 +33,8 @@ pub const Command = struct {
             const new_key = try alloc.dupe(u8, bin);
             _ = try cache.put(new_key, new_path);
             return .{
-                .bin = new_path,
-                .input = input,
+                .bin_path = new_path,
+                .args = input,
             };
         }
         return error.FileNotInPATH;
@@ -48,7 +48,6 @@ pub const Command = struct {
         const pid: i32 = @intCast(raw); 
 
         if (pid == 0) { // only the child will be executing the command
-            std.debug.print("Path is {s}\n", .{self.bin});
             var arg_bufs: [64][256]u8 = undefined;
             var argv: [65]?[*:0]const u8 = undefined;
 

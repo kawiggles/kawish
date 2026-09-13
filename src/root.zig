@@ -8,6 +8,7 @@ pub fn run(writer: *Io.Writer, reader: *Io.Reader, path: []const u8, alloc: std.
 
     try printPrompt(writer);
     while (try reader.takeDelimiter('\n')) |line| {
+        // Parse shell features here
         const cmd: Cmd = Cmd.init(line, &cmd_cache, path, alloc) catch |err| switch (err) {
             error.EmptyCommand => {
                 try printPrompt(writer);
