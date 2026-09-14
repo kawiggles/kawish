@@ -2,13 +2,18 @@ const std = @import("std");
 const Io = std.Io;
 
 const Cmd = @import("command.zig").Command;
+const PLine = @import("parser.zig").ParsedLine;
 
 pub fn run(writer: *Io.Writer, reader: *Io.Reader, path: []const u8, alloc: std.mem.Allocator) !void {
     var cmd_cache: std.StringHashMap([]const u8) = .init(alloc);
 
     try printPrompt(writer);
     while (try reader.takeDelimiter('\n')) |line| {
-        // Parse shell features here
+        const parsed: PLine = PLine.init(line, alloc) catch |err| switch (err) {
+            else => return err,
+        };
+        defer parsed.deinit();
+
         const cmd: Cmd = Cmd.init(line, &cmd_cache, path, alloc) catch |err| switch (err) {
             error.EmptyCommand => {
                 try printPrompt(writer);

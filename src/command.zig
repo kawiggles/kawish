@@ -18,7 +18,7 @@ pub const Command = struct {
         const bin = tokens.next() orelse return error.EmptyCommand;
         if (bin.len == 0) return error.EmptyCommand;
 
-        if (cache.get(bin)) |cached| return .{ .bin = cached, .input = input };
+        if (cache.get(bin)) |cached| return .{ .bin_path = cached, .args = input };
 
         var path_tokens = mem.splitScalar(u8, env_path, ':');
         while (path_tokens.next()) |token| {
