@@ -1,35 +1,42 @@
 const std = @import("std");
-const mem = std.mem;
+const Io = std.Io;
+const posix = std.posix;
+
+const Binary = @import("binary.zig").Binary;
 
 pub const ParsedLine = struct {
     const Self = @This();
-    input: []const u8,
+    line: []const u8,
     tokens: std.ArrayList(Token),
-    allocator: mem.Allocator,
+    allocator: std.mem.Allocator,
 
-    pub fn init(raw: []const u8, alloc: mem.Allocator) !Self {
+    /// Takes in a string and outputs an array of tokens with an allocator and the input string
+    pub fn init(raw: []const u8, alloc: std.mem.Allocator) !Self {
         const input = try alloc.dupe(u8, raw);
 
         var tokens: std.ArrayList(Token) = .empty;
         var pos: usize = 0;
         while (true) {
             const tok = nextToken(raw, &pos);
-            std.debug.print("Token lexed: {s}\n", .{tok.text});
+            // std.debug.print("Token of type {} lexed: {s}\n", .{ tok.t, tok.text });
             try tokens.append(alloc, tok);
+            if (tok.t == TokenType.eof) { break; }
         }
 
-        return .{ .input = input, .tokens = tokens, .allocator = alloc };
+        return .{ .line = input, .tokens = tokens, .allocator = alloc };
     }
 
+    /// Frees token array and input string
     pub fn deinit(self: *const ParsedLine) void {
         self.allocator.free(self.tokens);
         self.allocator.free(self.input);
     }
+
 };
 
-const TokenType = enum { word, literal, pipe, redir_out, redir_in, bgrd, semicolon, eof };
+pub const TokenType = enum { word, literal, pipe, redir_out, redir_in, bgrd, semicolon, eof };
 
-const Token = struct {
+pub const Token = struct {
     t: TokenType,
     text: []const u8,
 };

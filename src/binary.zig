@@ -3,7 +3,7 @@ const posix = std.posix;
 const mem = std.mem;
 const Io = std.Io;
 
-pub const Command = struct {
+pub const Binary = struct {
     const Self = @This();
     bin_path: []const u8,
     args: []const u8,
@@ -12,8 +12,8 @@ pub const Command = struct {
         input: []const u8,
         cache: *std.StringHashMap([]const u8),
         env_path: []const u8,
-        alloc: mem.Allocator) !Self {
-
+        alloc: mem.Allocator
+    ) !Self {
         var tokens = mem.splitScalar(u8, input, ' ');
         const bin = tokens.next() orelse return error.EmptyCommand;
         if (bin.len == 0) return error.EmptyCommand;
@@ -40,7 +40,7 @@ pub const Command = struct {
         return error.FileNotInPATH;
     }
 
-    pub fn exec(self: *const Command) !void {
+    pub fn exec(self: *const Binary) !void {
         // clone the process, where the child is pid 0
         // basically converting from zig errno to c errno for system syscalls
         const raw = posix.system.fork(); 
@@ -51,7 +51,8 @@ pub const Command = struct {
             var arg_bufs: [64][256]u8 = undefined;
             var argv: [65]?[*:0]const u8 = undefined;
 
-            var tokens = mem.splitScalar(u8, self.input, ' ');
+            // convert input arguments into Linux C compatible buffer
+            var tokens = mem.splitScalar(u8, self.args, ' ');
             var i: usize = 0;
             while (tokens.next()) |token| : (i += 1) {
                 argv[i] = mem.printSentinel(&arg_bufs[i], "{s}", .{token}, 0) catch
@@ -60,7 +61,7 @@ pub const Command = struct {
             argv[i] = null;
 
             var bin_buf: [256]u8 = undefined;
-            const path = mem.printSentinel(&bin_buf, "{s}", .{self.bin}, 0) catch
+            const path = mem.printSentinel(&bin_buf, "{s}", .{self.bin_path}, 0) catch
                 posix.system.exit(127);
 
             _ = posix.system.execve(path, @ptrCast(&argv), std.c.environ);

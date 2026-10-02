@@ -1,13 +1,14 @@
-const cmd = @import("command.zig");
+const bin = @import("binary.zig");
 const cd = @import("cd.zig");
 
 const Node = union(enum) {
-    command: cmd.Command,
+    binary: bin.Binary,
     cd: cd.Cd,
 
     fn exec(self: *Node) !void {
         switch (self.*) {
-            .command => |*c| try c.exec(),
+            .binary => |*b| try b.exec(),
+            .cd => |*c| try c.exec(),
         }
     }
 };
