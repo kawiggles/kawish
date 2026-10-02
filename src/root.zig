@@ -1,37 +1,54 @@
 const std = @import("std");
 const Io = std.Io;
+const mem = std.mem;
 
-const Cmd = @import("command.zig").Command;
-const PLine = @import("parser.zig").ParsedLine;
+const Binary = @import("binary.zig").Binary;
+const ParsedLine = @import("parser.zig").ParsedLine;
 
-pub fn run(writer: *Io.Writer, reader: *Io.Reader, path: []const u8, alloc: std.mem.Allocator) !void {
-    var cmd_cache: std.StringHashMap([]const u8) = .init(alloc);
+pub const Shell = struct {
+    const Self = @This();
+    reader: *Io.Reader,
+    writer: *Io.Writer,
+    path: []const u8,
+    wd: Io.Dir,
+    cmd_cache: std.StringHashMap([]const u8),
+    allocator: mem.Allocator,
 
-    try printPrompt(writer);
-    while (try reader.takeDelimiter('\n')) |line| {
-        const parsed: PLine = PLine.init(line, alloc) catch |err| switch (err) {
-            else => return err,
+    pub fn init(writer: *Io.Writer, reader: *Io.Reader, path: []const u8, alloc: mem.Allocator) !Self {
+        const cmd_cache: std.StringHashMap([]const u8) = .init(alloc);
+
+        return .{ 
+            .reader = reader,
+            .writer = writer,
+            .path = path,
+            .wd = Io.Dir.cwd(),
+            .cmd_cache = cmd_cache,
+            .allocator = alloc,
         };
-        defer parsed.deinit();
-
-        const cmd: Cmd = Cmd.init(line, &cmd_cache, path, alloc) catch |err| switch (err) {
-            error.EmptyCommand => {
-                try printPrompt(writer);
-                continue;
-            },
-            error.FileNotInPATH => {
-                std.debug.print("Command not found\n", .{});
-                try printPrompt(writer);
-                continue;
-            },
-            else => return err,
-        };
-
-        try cmd.exec();
-
-        try printPrompt(writer);
     }
-}
+
+    pub fn run(self: *Shell) !void {
+        try printPrompt(self.writer);
+
+        while (try self.reader.takeDelimiter('\n')) |line| {
+            const parsed = try ParsedLine.init(line, self.allocator);
+
+            parsed.exec(&self.cmd_cache, self.path, self.allocator) catch |err| switch (err) {
+                error.EmptyCommand => {
+                    try printPrompt(self.writer);
+                },
+                error.FileNotInPATH => {
+                    std.debug.print("Binary not found\n", .{});
+                    try printPrompt(self.writer);
+                },
+                else => return err,
+            };
+        }
+
+        try printPrompt(self.writer);
+    }
+};
+
 
 fn printPrompt(writer: *Io.Writer) !void {
     try writer.print("kawish> ", .{});
