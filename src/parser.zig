@@ -1,23 +1,24 @@
 const std = @import("std");
+const Io = std.Io;
+const posix = std.posix;
+
 const Binary = @import("binary.zig").Binary;
-const mem = std.mem;
 
 pub const ParsedLine = struct {
     const Self = @This();
     line: []const u8,
     tokens: std.ArrayList(Token),
-    allocator: mem.Allocator,
+    allocator: std.mem.Allocator,
 
     /// Takes in a string and outputs an array of tokens with an allocator and the input string
-    pub fn init(raw: []const u8, alloc: mem.Allocator) !Self {
+    pub fn init(raw: []const u8, alloc: std.mem.Allocator) !Self {
         const input = try alloc.dupe(u8, raw);
 
         var tokens: std.ArrayList(Token) = .empty;
         var pos: usize = 0;
-        // TODO: add condition to this loop
         while (true) {
             const tok = nextToken(raw, &pos);
-            std.debug.print("Token lexed: {s}\n", .{tok.text});
+            // std.debug.print("Token of type {} lexed: {s}\n", .{ tok.t, tok.text });
             try tokens.append(alloc, tok);
             if (tok.t == TokenType.eof) { break; }
         }
@@ -31,32 +32,11 @@ pub const ParsedLine = struct {
         self.allocator.free(self.input);
     }
 
-    pub fn exec(
-        self: *const ParsedLine,
-        cmd_cache: *std.StringHashMap([]const u8),
-        path: []const u8,
-        alloc: mem.Allocator
-    ) !void {
-        const first = self.tokens.items[0];
-        switch (first.t) {
-            .word => { 
-                if (mem.eql(u8, first.text, "cd")) {
-                    std.debug.print("do a cd to path {s}\n", .{self.tokens.items[1].text});
-                } else {
-                    const cmd = try Binary.init(self.line, cmd_cache, path, alloc);
-                    try cmd.exec();
-                }
-            },
-            .literal, .pipe, .redir_out, .redir_in, .bgrd, .semicolon => undefined,
-            .eof => return,
-        }
-    }
-
 };
 
-const TokenType = enum { word, literal, pipe, redir_out, redir_in, bgrd, semicolon, eof };
+pub const TokenType = enum { word, literal, pipe, redir_out, redir_in, bgrd, semicolon, eof };
 
-const Token = struct {
+pub const Token = struct {
     t: TokenType,
     text: []const u8,
 };

@@ -20,7 +20,7 @@ pub fn main(init: std.process.Init) !u8 {
     var stdout_file_writer: std.Io.File.Writer = .init(.stdout(), io, &stdout_buf);
     const stdout = &stdout_file_writer.interface;
 
-    var shell = try Shell.init(stdout, stdin, path, allocator);
+    var shell = try Shell.init(stdout, stdin, path, allocator, io);
     try shell.run();
 
     return 0;
