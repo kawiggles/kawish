@@ -2,8 +2,6 @@ const std = @import("std");
 const Io = std.Io;
 const posix = std.posix;
 
-const Binary = @import("binary.zig").Binary;
-
 pub const ParsedLine = struct {
     const Self = @This();
     line: []const u8,
@@ -27,11 +25,10 @@ pub const ParsedLine = struct {
     }
 
     /// Frees token array and input string
-    pub fn deinit(self: *const ParsedLine) void {
+    pub fn deinit(self: *const Self) void {
         self.allocator.free(self.tokens);
         self.allocator.free(self.input);
     }
-
 };
 
 pub const TokenType = enum { word, literal, pipe, redir_out, redir_in, bgrd, semicolon, eof };
@@ -66,3 +63,28 @@ fn nextToken(input: []const u8, pos: *usize) Token {
         },
     }
 }
+
+pub const Command = union(enum) {
+    
+};
+
+const Parser = struct {
+    const Self = @This();
+    tokens: std.ArrayList(Token),
+    pos: usize,
+
+    pub fn new(tokens: std.ArrayList(Token)) Self {
+        return Self { .tokens = tokens };
+    }
+
+    pub fn peek(self: *const Self) *Token {
+        return &self.tokens[self.pos];
+    }
+
+    pub fn advance(self: *Self) Token {
+        const t = self.tokens[self.pos];
+        self.pos += 1;
+        return t;
+
+    }
+};

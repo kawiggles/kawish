@@ -9,6 +9,7 @@ const Node = union(enum) {
         switch (self.*) {
             .binary => |*b| try b.exec(),
             .cd => |*c| try c.exec(),
+            .pipe => |*p| try p.exec(),
         }
     }
 };
